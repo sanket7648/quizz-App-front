@@ -49,16 +49,14 @@ async function fetchWithError(
   }
 }
 
-// ==================== TYPES ====================
-
 export interface Choice {
-  id: number;
+  id?: number;
   text: string;
   is_correct: boolean;
 }
 
 export interface Question {
-  id: number;
+  id?: number;
   text: string;
   difficulty: number;
   choices: Choice[];
@@ -67,6 +65,18 @@ export interface Question {
 export interface Topic {
   id: number;
   name: string;
+}
+
+export interface GenerateQuizRequest {
+  topic: string;
+  num_questions: number;
+  difficulty: number;
+}
+
+export interface GeneratedQuiz {
+  topic: string;
+  questions: Question[];
+  generated_at: string;
 }
 
 export interface QuizQuestion extends Question {
@@ -111,6 +121,26 @@ export async function getRandomQuiz(
   return (await fetchWithError(
     `/api/quiz/random?topic_id=${topicId}&num_questions=${numQuestions}`
   )) as Question[];
+}
+
+/**
+ * Generate quiz questions using AI for a custom topic
+ */
+export async function generateQuiz(
+  topic: string,
+  numQuestions: number = 5,
+  difficulty: number = 2
+): Promise<GeneratedQuiz> {
+  const request: GenerateQuizRequest = {
+    topic,
+    num_questions: numQuestions,
+    difficulty,
+  };
+
+  return (await fetchWithError("/api/quiz/generate", {
+    method: "POST",
+    body: JSON.stringify(request),
+  })) as GeneratedQuiz;
 }
 
 /**
