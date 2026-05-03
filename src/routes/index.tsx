@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
-import { categories } from "@/lib/quizData";
+import { useCategories } from "@/hooks/useQuizData";
 import { CategoryCard } from "@/components/CategoryCard";
 import { Quiz } from "@/components/Quiz";
 
@@ -21,6 +21,7 @@ export const Route = createFileRoute("/")({
 function Index() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [count, setCount] = useState(5);
+  const { categories, loading } = useCategories();
 
   const active = categories.find((c) => c.id === activeId) ?? null;
 
@@ -65,13 +66,21 @@ function Index() {
             <section>
               <div className="mb-6 flex items-end justify-between">
                 <h2 className="text-2xl font-semibold sm:text-3xl">Choose a field</h2>
-                <span className="text-sm text-muted-foreground">{categories.length} topics</span>
+                <span className="text-sm text-muted-foreground">
+                  {loading ? "Loading..." : `${categories.length} topics`}
+                </span>
               </div>
-              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {categories.map((c) => (
-                  <CategoryCard key={c.id} category={c} onSelect={setActiveId} />
-                ))}
-              </div>
+              {loading ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" />
+                </div>
+              ) : (
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                  {categories.map((c) => (
+                    <CategoryCard key={c.id} category={c} onSelect={setActiveId} />
+                  ))}
+                </div>
+              )}
             </section>
 
             <footer className="mt-20 text-center text-xs text-muted-foreground">

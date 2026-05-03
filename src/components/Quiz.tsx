@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
+import { useQuiz } from "@/hooks/useQuizData";
 import { Category, Question } from "@/lib/quizData";
 
 type Props = {
@@ -17,13 +18,25 @@ function shuffle<T>(arr: T[]): T[] {
 }
 
 export function Quiz({ category, numQuestions = 5, onExit }: Props) {
-  const [questions, setQuestions] = useState<Question[]>(() =>
-    shuffle(category.questions).slice(0, numQuestions),
-  );
+  // Fetch questions from API
+  const { questions: apiQuestions, loading } = useQuiz(category.id, numQuestions);
+  
+  // Use either API questions or fallback to category questions
+  const initialQuestions = useMemo(() => {
+    const questionsToUse = apiQuestions.length > 0 ? apiQuestions : category.questions;
+    return shuffle(questionsToUse).slice(0, numQuestions);
+  }, [apiQuestions, category.questions, numQuestions]);
+
+  const [questions, setQuestions] = useState<Question[]>([]);
   const [current, setCurrent] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
   const [score, setScore] = useState(0);
   const [finished, setFinished] = useState(false);
+
+  // Update questions when API data loads
+  useEffect(() => {
+    setQuestions(initialQuestions);
+  }, [initialQuestions]);
 
   const q = questions[current];
   const progress = useMemo(
@@ -47,12 +60,39 @@ export function Quiz({ category, numQuestions = 5, onExit }: Props) {
   };
 
   const restart = () => {
-    setQuestions(shuffle(category.questions).slice(0, numQuestions));
+    setQuestions(shuffle(initialQuestions).slice(0, numQuestions));
     setCurrent(0);
     setSelected(null);
     setScore(0);
     setFinished(false);
   };
+
+  if (loading) {
+    return (
+      <div className="glass mx-auto w-full max-w-2xl rounded-3xl p-8 shadow-card">
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-4 border-border border-t-primary" />
+        </div>
+        <p className="text-center text-muted-foreground">Loading questions...</p>
+      </div>
+    );
+  }
+
+  if (!q) {
+    return (
+      <div className="glass mx-auto w-full max-w-2xl rounded-3xl p-8 shadow-card">
+        <div className="text-center">
+          <p className="text-muted-foreground">No questions available</p>
+          <button
+            onClick={onExit}
+            className="mt-4 rounded-xl border border-border bg-secondary px-6 py-3 font-semibold text-secondary-foreground transition-colors hover:bg-muted"
+          >
+            Go Back
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (finished) {
     const pct = Math.round((score / questions.length) * 100);
